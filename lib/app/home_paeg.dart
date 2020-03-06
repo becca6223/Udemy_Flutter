@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:time_tracker_flutter_course/services/auth.dart';
 
 class HomePage extends StatelessWidget {
-  HomePage({@required this.auth, @required this.onSignOut});
-  final VoidCallback onSignOut;
+  HomePage({@required this.auth});
   final AuthBase auth;
 
   Future<void> _signOut() async {
     try {
       await auth.signOut();
-      onSignOut();
     } catch (err) {
       print(err.toString());
     }
@@ -17,6 +15,7 @@ class HomePage extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
+    print('build home page');
     return Scaffold(
       appBar: AppBar(
         title: Text(' Home Page'),

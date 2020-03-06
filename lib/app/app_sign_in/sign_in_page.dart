@@ -5,14 +5,12 @@ import 'package:time_tracker_flutter_course/services/auth.dart';
 
 class SignInPage extends StatelessWidget {
 
-  SignInPage({@required this.auth, @required this.onSignIn});
-  final Function(User) onSignIn;
+  SignInPage({@required this.auth});
   final AuthBase auth;
 
   Future<void> _signInAnonymously() async {
     try {
-      User user = await auth.signInAnonymously();
-      onSignIn(user);
+      await auth.signInAnonymously();
     } catch (err) {
       print(err.toString());
     }
@@ -20,7 +18,6 @@ class SignInPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('Rendering...');
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -34,7 +31,7 @@ class SignInPage extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    print('buildContent...');
+    print('build sign in page');
     return Padding(
       padding: EdgeInsets.all(16.0),
       child: Column(
