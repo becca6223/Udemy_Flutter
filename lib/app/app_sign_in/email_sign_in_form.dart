@@ -7,7 +7,7 @@ import 'package:time_tracker_flutter_course/services/auth.dart';
 enum EmailSignInFormType { signIn, register }
 
 //TextEditingController needs to be used with stateful widget?
-//add EmailandPasswordValidator as a mixin form
+//add EmailandPasswordValidator as a mixin form, "with" syntax
 class EmailSignInForm extends StatefulWidget with EmailAndPasswordValidators {
   EmailSignInForm({@required this.auth});
   final AuthBase auth;
@@ -25,10 +25,17 @@ class _EmailSignInFormState extends State<EmailSignInForm> {
   String get _email => _emailController.text;
   String get _password => _passwordController.text;
   EmailSignInFormType _formType = EmailSignInFormType.signIn;
+  bool _submitted = false;
+  bool _isLoading = false;
 
   void _submit() async {
-    //TODO: print email and password
+    setState(() {
+      _submitted = true;
+      _isLoading = true;
+    });
     try {
+      //This Future delay simulates slow network
+      //await Future.delayed(Duration(seconds: 3));
       if (_formType == EmailSignInFormType.signIn) {
         await widget.auth.signInWithEmailAndPassword(_email, _password);
       } else {
@@ -37,16 +44,26 @@ class _EmailSignInFormState extends State<EmailSignInForm> {
       Navigator.of(context).pop();
     } catch (e) {
       print(e.toString());
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   void _emailEditingComplete() {
     print('email editing complete');
-    FocusScope.of(context).requestFocus(_passwordFocusNode);
+    /* This makes sure that when the email field is empty, 
+       the cursor still focus on email field */
+    final newFocus = widget.emailValidator.isValid(_email) ?
+      _passwordFocusNode : 
+      _emailFocusNode;
+    FocusScope.of(context).requestFocus(newFocus);
   }
 
   void _toggleFormType() {
     setState(() {
+      _submitted = false;
       _formType = _formType == EmailSignInFormType.signIn
           ? EmailSignInFormType.register
           : EmailSignInFormType.signIn;
@@ -67,7 +84,7 @@ class _EmailSignInFormState extends State<EmailSignInForm> {
         : 'Have an account? Sign in';
 
     bool submitEnabled = widget.emailValidator.isValid(_email) &&
-      widget.passwordValidator.isValid(_password);
+        widget.passwordValidator.isValid(_password) && !_isLoading;
 
     return [
       _buildEmailTextField(),
@@ -89,31 +106,33 @@ class _EmailSignInFormState extends State<EmailSignInForm> {
             fontSize: 12,
           ),
         ),
-        onPressed: _toggleFormType,
+        onPressed: !_isLoading ? _toggleFormType : null,
       ),
     ];
   }
 
   TextField _buildPasswordTextField() {
-    bool passwordValid = widget.passwordValidator.isValid(_password);
+    bool showErrorText =
+        _submitted && !widget.passwordValidator.isValid(_password);
 
     return TextField(
       controller: _passwordController,
       focusNode: _passwordFocusNode,
       decoration: InputDecoration(
         labelText: 'Password',
-        errorText: passwordValid ? null : widget.invalidPasswordErrorText,
+        errorText: showErrorText ? widget.invalidPasswordErrorText : null,
+        enabled: _isLoading == false,
       ),
       obscureText: true,
       textInputAction: TextInputAction.done,
       onChanged: (password) => _updateState(),
-      onEditingComplete: _submit, //this needs to be fixed. after the user press the keyboard done, they can still submit with empty field.
-      //onEditingComplete: widget.passwordValidator.isValid(_password) ? _submit : null,
+      //onEditingComplete: _submit, //this needs to be fixed. after the user press the keyboard done, they can still submit with empty field.
+      onEditingComplete: showErrorText ? null : _submit,
     );
   }
 
   TextField _buildEmailTextField() {
-    bool emailValid = widget.emailValidator.isValid(_email);
+    bool showErrorText = _submitted && !widget.emailValidator.isValid(_email);
 
     return TextField(
       controller: _emailController,
@@ -121,7 +140,8 @@ class _EmailSignInFormState extends State<EmailSignInForm> {
       decoration: InputDecoration(
         labelText: 'Email',
         hintText: 'test@test.com',
-        errorText: emailValid ? null : widget.invalidEmailErrorText,
+        errorText: showErrorText ? widget.invalidEmailErrorText : null,
+        enabled: _isLoading == false,
       ),
       autocorrect: false,
       keyboardType: TextInputType.emailAddress,
